@@ -4,8 +4,8 @@ import { GoogleLogin } from "@react-oauth/google"
 import FacebookLogin from "react-facebook-login"
 const AuthForm = () => {
 	const handleFacebookLogin = (response) => {
+		console.log(response)
 		if (response.accessToken) {
-			console.log(response)
 			// onLoginSuccess(response.accessToken)
 		} else {
 			// onLoginFailure()
