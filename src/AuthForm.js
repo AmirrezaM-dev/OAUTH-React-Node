@@ -61,7 +61,7 @@ const AuthForm = () => {
 								/>
 							</div>
 							<FacebookLogin
-								appId="980950726779871"
+								appId="987869802896721"
 								autoLoad={false}
 								fields="name,email,picture"
 								callback={handleFacebookLogin}
