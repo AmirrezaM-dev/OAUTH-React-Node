@@ -5,6 +5,7 @@ import FacebookLogin from "react-facebook-login"
 const AuthForm = () => {
 	const handleFacebookLogin = (response) => {
 		if (response.accessToken) {
+			console.log(response)
 			// onLoginSuccess(response.accessToken)
 		} else {
 			// onLoginFailure()
@@ -64,11 +65,11 @@ const AuthForm = () => {
 								autoLoad={false}
 								fields="name,email,picture"
 								callback={handleFacebookLogin}
-								// render={(renderProps) => (
-								// 	<button onClick={renderProps.onClick}>
-								// 		Login with Facebook
-								// 	</button>
-								// )}
+								render={(renderProps) => (
+									<button onClick={renderProps.onClick}>
+										Login with Facebooks
+									</button>
+								)}
 							/>
 							<Button
 								variant="outline-info"
