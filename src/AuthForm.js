@@ -2,6 +2,7 @@ import React from "react"
 import { Form, Button, Container, Row, Col } from "react-bootstrap"
 import { GoogleLogin } from "@react-oauth/google"
 import FacebookLogin from "react-facebook-login"
+
 const AuthForm = () => {
 	const handleFacebookLogin = (response) => {
 		console.log(response)
@@ -19,16 +20,20 @@ const AuthForm = () => {
 					<div className="p-4 shadow rounded-lg bg-light">
 						<h2 className="text-center mb-4">Welcome Back!</h2>
 						<Form>
-							<Form.Group controlId="formBasicEmail">
-								<Form.Label>Email Address</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label className="mb-1">
+									Email Address
+								</Form.Label>
 								<Form.Control
 									type="email"
 									placeholder="Enter email"
 								/>
 							</Form.Group>
 
-							<Form.Group controlId="formBasicPassword">
-								<Form.Label>Password</Form.Label>
+							<Form.Group className="mb-2">
+								<Form.Label className="mb-1">
+									Password
+								</Form.Label>
 								<Form.Control
 									type="password"
 									placeholder="Password"
@@ -63,7 +68,7 @@ const AuthForm = () => {
 							<FacebookLogin
 								appId="987869802896721"
 								autoLoad={false}
-								fields="name,email,picture"
+								fields="name,email"
 								callback={handleFacebookLogin}
 							/>
 							<Button
@@ -73,7 +78,7 @@ const AuthForm = () => {
 								Twitter
 							</Button>
 						</div>
-						<p className="mt-3 text-center">
+						<p className="mt-2 text-center">
 							Don't have an account? <a href="#">Sign Up</a>
 						</p>
 					</div>

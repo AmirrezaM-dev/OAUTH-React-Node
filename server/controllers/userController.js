@@ -1,18 +1,22 @@
 const expressAsyncHandler = require("express-async-handler")
-const jwt = require("jsonwebtoken")
 const bcrypt = require("bcryptjs")
 const User = require("../models/userModel")
 const csrf = require("csrf")()
 const Token = require("../models/tokenModel")
 const { OAuth2Client } = require("google-auth-library")
-const client = new OAuth2Client(process.env.googleClientID)
+const client = new OAuth2Client(
+	process.env.googleClientID,
+	process.env.googleClientSecret
+)
 const passport = require("passport")
+const axios = require("axios")
 
 const get = expressAsyncHandler(async (req, res) => {
 	try {
-		const { fullname, email, username, _id, avatar } = await User.findById(
-			req.user.id
-		).select("-password")
+		const user = await User.findById(req.session.user._id).select(
+			"-password"
+		)
+		const { fullname, email, username, _id, avatar } = user
 		res.status(200).json({
 			_id,
 			fullname,
@@ -58,8 +62,25 @@ const login = expressAsyncHandler(async (req, res) => {
 				return res.status(401).json({ error: "Invalid credentials" })
 			}
 
-			req.session.userId = user._id // Store user ID in session
-			res.status(200).json({ message: "Login successful" })
+			const { _id, fullname, username, avatar } = user
+			const csrfSecret = await csrf.secret()
+			const csrfToken = csrf.create(csrfSecret)
+
+			req.session.user = { ...user._doc, csrfSecret }
+
+			await Token.create({
+				user: user.id,
+				clientSideCookie: csrfSecret,
+			})
+
+			res.status(200).json({
+				_id,
+				fullname,
+				email,
+				username,
+				csrfToken,
+				avatar,
+			})
 		} catch (error) {
 			res.status(500).json({ error: "Login failed" })
 		}
@@ -101,23 +122,15 @@ const googleLogin = expressAsyncHandler(async (req, res) => {
 				})
 			}
 
-			const token = generateToken(user._id)
 			const csrfSecret = await csrf.secret()
 			const csrfToken = csrf.create(csrfSecret)
 
 			await Token.create({
 				user: user.id,
-				lt: token,
-				cs: csrfSecret,
+				clientSideCookie: csrfSecret,
 			})
 
-			res.cookie("lt", token, {
-				path: "/",
-				sameSite: "none",
-				maxAge: 99999999,
-				httpOnly: true,
-				secure: true,
-			})
+			req.session.user = { ...user._doc, csrfSecret, credential }
 
 			// const { _id, fullname, username, avatar } = user
 
@@ -144,10 +157,100 @@ const googleLogin = expressAsyncHandler(async (req, res) => {
 		else throw new Error("Something went wrong")
 	}
 })
+const facebookLogin = expressAsyncHandler(async (req, res) => {
+	const { accessToken, userID } = req.body
+
+	try {
+		// Make a GET request to Facebook's token debug endpoint
+		const response = await axios.get(
+			"https://graph.facebook.com/v12.0/me",
+			{
+				params: {
+					access_token: accessToken,
+					fields: "id, name, email", // Specify the fields you need to retrieve (e.g., 'id', 'name', 'email')
+				},
+			}
+		)
+
+		const userData = response.data
+
+		// Check if the token is valid
+		if (userData && userData?.id === userID) {
+			const email = userData.email
+			const fullname = userData.name
+
+			let user = await User.findOne({ email })
+
+			if (!user) {
+				user = await User.create({
+					fullname,
+					email,
+					password: accessToken,
+				})
+			}
+
+			const csrfSecret = await csrf.secret()
+			const csrfToken = csrf.create(csrfSecret)
+
+			await Token.create({
+				user: user.id,
+				clientSideCookie: csrfSecret,
+			})
+
+			req.session.user = { ...user._doc, csrfSecret, accessToken }
+
+			// const { _id, fullname, username, avatar } = user
+
+			res.status(200).json({
+				_id: user._id,
+				fullname,
+				email,
+				csrfToken,
+			})
+		} else {
+			// Token is invalid
+			res.status(401).json({ message: "Facebook login failed" })
+		}
+	} catch (error) {
+		console.error("Error verifying Facebook access token:", error)
+		res.status(500).json({ error: "Internal server error" })
+	}
+})
 const logout = expressAsyncHandler(async (req, res) => {
-	if (req.cookies.lt) {
-		await Token.findOneAndDelete({ lt: req.cookies.lt, active: true })
-		res.clearCookie("lt")
+	if (req?.session?.user) {
+		if (req?.session?.user?.credential) {
+			try {
+				client.revokeToken(req.session.user.credential)
+			} catch (e) {
+				throw new Error(
+					"There was an issue while attempting to log out. Please try again."
+				)
+			}
+		}
+
+		if (req?.session?.user?.accessToken) {
+			try {
+				const response = await axios.delete(
+					`https://graph.facebook.com/v12.0/me/permissions`,
+					{
+						params: {
+							access_token: req?.session?.user?.accessToken,
+						},
+					}
+				)
+				if (!response?.data?.success)
+					throw new Error(
+						"There was an issue while attempting to log out. Please try again."
+					)
+			} catch (e) {
+				throw new Error(
+					"There was an issue while attempting to log out. Please try again."
+				)
+			}
+		}
+
+		await Token.findOneAndDelete({ user: req.session.user, active: true })
+		req.session.destroy()
 		res.status(200).json({})
 	}
 })
@@ -178,11 +281,6 @@ const register = expressAsyncHandler(async (req, res) => {
 		throw new Error("Invalid user data")
 	}
 })
-const generateToken = (id) => {
-	return jwt.sign({ id }, "abc123", {
-		expiresIn: "30d",
-	})
-}
 const saveProfile = expressAsyncHandler(async (req, res) => {
 	try {
 		if (!req.body?.email && !req.body?.username) {
@@ -192,7 +290,7 @@ const saveProfile = expressAsyncHandler(async (req, res) => {
 		const { fullname, username, email } = req.body
 		const usernameOrEmailExist = await User.findOne({
 			$or: [{ username }, { email }],
-			_id: { $ne: req.user.id },
+			_id: { $ne: req.session.user._id },
 		})
 		if (usernameOrEmailExist) {
 			if (usernameOrEmailExist.username === username)
@@ -202,7 +300,7 @@ const saveProfile = expressAsyncHandler(async (req, res) => {
 			else res.status(400).json({ error: "Something went wrong" })
 		} else {
 			const updatedUser = await User.findByIdAndUpdate(
-				req.user.id,
+				req.session.user._id,
 				{
 					fullname,
 					username,
@@ -232,11 +330,11 @@ const savePassword = expressAsyncHandler(async (req, res) => {
 			throw new Error("Please fill all fields")
 		}
 		const { password, newPassword } = req.body
-		const user = await User.findById(req.user.id)
+		const user = await User.findById(req.session.user._id)
 		if (user && (await bcrypt.compare(password, user.password))) {
 			const salt = await bcrypt.genSalt(10)
 			const hashedNewPassword = await bcrypt.hash(newPassword, salt)
-			await User.findByIdAndUpdate(req.user.id, {
+			await User.findByIdAndUpdate(req.session.user._id, {
 				password: hashedNewPassword,
 			})
 			res.status(200).json({})
@@ -251,6 +349,7 @@ const savePassword = expressAsyncHandler(async (req, res) => {
 module.exports = {
 	register,
 	login,
+	facebookLogin,
 	googleLogin,
 	googleGet,
 	logout,

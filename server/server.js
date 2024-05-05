@@ -16,8 +16,6 @@ server.once("close", function () {
 	require("./services/passport")
 	const cors = require("cors")
 	const express = require("express")
-	const cookieParser = require("cookie-parser")
-	const cookieSession = require("cookie-session")
 	const connectDB = require("./configs/db")
 	const session = require("express-session")
 	const passport = require("passport")
@@ -29,31 +27,23 @@ server.once("close", function () {
 		origin: origins,
 		credentials: true,
 	}
-	app.use(cors(CORS))
 
 	connectDB()
-
-	app.use(cookieParser())
-
-	app.use(
-		cookieSession({
-			name: "session",
-			maxAge: 30 * 24 * 60 * 60 * 1000,
-			keys: [process.env.cookieKey],
-		})
-	)
-
-	app.use(passport.initialize())
-	app.use(passport.session())
-
+	app.use(cors(CORS))
 	app.use(express.json())
 	app.use(
 		session({
 			secret: process.env.SESSION_SECURE_KEY,
 			resave: false,
 			saveUninitialized: true,
+			cookie: {
+				secure: process.env.PRODUCTION ? true : false,
+				maxAge: 24 * 60 * 60 * 1000 * 7,
+			},
 		})
 	)
+	app.use(passport.initialize())
+	app.use(passport.session())
 	app.use(express.urlencoded({ extended: false }))
 
 	app.use("/api/users", require("./routes/userRoutes"))

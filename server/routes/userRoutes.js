@@ -5,6 +5,7 @@ const {
 	register,
 	login,
 	googleLogin,
+	facebookLogin,
 	get,
 	logout,
 } = require("../controllers/userController")
@@ -15,6 +16,7 @@ const {
 router.post("/register", register)
 router.post("/login", login)
 router.post("/googleLogin", googleLogin)
+router.post("/facebookLogin", facebookLogin)
 router.get("/logout", [jsonWebTokenAndCsrfProtection], logout)
 
 // router.post("/resetPassword", (req, res) => {
