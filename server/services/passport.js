@@ -1,5 +1,20 @@
 const GoogleStrategy = require("passport-google-oauth20").Strategy
 const passport = require("passport")
+const TwitterStrategy = require("passport-twitter").Strategy
+
+passport.use(
+	new TwitterStrategy(
+		{
+			consumerKey: process.env.TWITTER_CONSUMER_KEY,
+			consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
+			callbackURL: "dummy",
+		},
+		(token, tokenSecret, profile, done) => {
+			// Handle user profile data
+			return done(null, profile)
+		}
+	)
+)
 
 passport.use(
 	new GoogleStrategy(

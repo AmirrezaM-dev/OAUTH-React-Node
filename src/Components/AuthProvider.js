@@ -3,11 +3,16 @@ import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props
 import { Button, Col, Container, Row } from "react-bootstrap"
 import { useAuth } from "./useAuth"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faFacebook } from "@fortawesome/free-brands-svg-icons"
+import { faFacebook, faTwitter } from "@fortawesome/free-brands-svg-icons"
 
 const AuthProvider = ({ children }) => {
-	const { onLoginSubmit, firstLogin, loadingLogin, setLoadingLogin } =
-		useAuth()
+	const {
+		onLoginSubmit,
+		firstLogin,
+		loadingLogin,
+		setLoadingLogin,
+		authApi,
+	} = useAuth()
 	return (
 		<Container className="mt-5">
 			<Row className="justify-content-center">
@@ -86,6 +91,56 @@ const AuthProvider = ({ children }) => {
 												</Button>
 											)}
 										/>
+									</div>
+								) : (
+									<></>
+								)}
+								{process.env
+									.REACT_APP_ENV_TWITTER_OAUTH_DISABLED ? (
+									<div
+										className={`mb-3 ${
+											!firstLogin || loadingLogin
+												? "d-none"
+												: ""
+										}`}
+									>
+										<Button
+											variant="info"
+											className="text-white"
+											onClick={() => {
+												try {
+													authApi
+														.get(
+															"http://localhost:9000/auth/twitter"
+														)
+														.then((response) => {
+															console.log(
+																response.data
+																	.redirectUrl
+															)
+															// window.location.href =
+															// 	response.data.redirectUrl
+														})
+												} catch (error) {
+													console.error(
+														"Error logging in:",
+														error
+													)
+												}
+											}}
+										>
+											<span
+												style={{
+													marginRight: "25px",
+												}}
+											>
+												Log in with Twitter
+											</span>
+											<FontAwesomeIcon
+												icon={faTwitter}
+												className="mr-2"
+											/>
+										</Button>
 									</div>
 								) : (
 									<></>
