@@ -30,7 +30,7 @@ To integrate the required components (`useMain` and `useAuth`) using `useContext
 
 Copy the `AuthPages` folder into your front-end project.
 
-### 4. Copy Essential Folders
+### 4. Copy Essential Folders (Back-end/server folder)
 
 Copy the following folders from this repository to your project directory:
 - `controllers`
@@ -39,7 +39,7 @@ Copy the following folders from this repository to your project directory:
 - `routes`
 - `services`
 
-### 5. Modify Server Configuration
+### 5. Modify Server.js Configuration
 
 Make necessary modifications to `server.js` to suit your project requirements.
 
