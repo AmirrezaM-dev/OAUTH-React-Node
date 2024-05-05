@@ -1,70 +1,59 @@
-# Getting Started with Create React App
+# OAUTH-React-Node
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Built with React.js, Bootstrap, Node.js (Express.js) and MongoDB.
 
-## Available Scripts
+## Setup Instructions
 
-In the project directory, you can run:
+### 1. Configure .env Files
 
-### `npm start`
+Before using the code, ensure to configure the `.env` files for both the front-end and back-end.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 2. Integrating Components
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+To integrate the required components (`useMain` and `useAuth`) using `useContext`, follow these steps:
 
-### `npm test`
+- **Option 1: Full Integration**
+  1. Copy the component files (`MainComponent.js` and `AuthProvider.js`).
+  2. Import and wrap your components in `index.js` as follows:
+     ```jsx
+     <MainComponent>
+       <AuthProvider>
+         {/* Your App Components Here */}
+       </AuthProvider>
+     </MainComponent>
+     ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Option 2: Partial Integration**
+  - If you don't need `MainComponent`, copy the necessary functions (`Toast`, `showPreloader`, `setShowPreloader`) from `useMain.js` and replace the corresponding code in `useAuth.js`.
 
-### `npm run build`
+### 3. Front-End Configuration
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Copy the `AuthPages` folder into your front-end project.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 4. Copy Essential Folders
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Copy the following folders from this repository to your project directory:
+- `controllers`
+- `middleware`
+- `models`
+- `routes`
+- `services`
 
-### `npm run eject`
+### 5. Modify Server Configuration
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Make necessary modifications to `server.js` to suit your project requirements.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 6. Update Front-End App
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Modify `App.js` in your front-end project to integrate with the back-end services and authentication.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+These steps outline the process to set up and integrate the provided components and functionalities into your project.
+  
+**Features:**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+-   Authentication (Sign Up/Sign In)
+-   Google login
+-   Facebook login
+-   More features coming soon
