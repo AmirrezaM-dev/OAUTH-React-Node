@@ -8,7 +8,6 @@ const client = new OAuth2Client(
 	process.env.googleClientID,
 	process.env.googleClientSecret
 )
-const passport = require("passport")
 const axios = require("axios")
 
 const get = expressAsyncHandler(async (req, res) => {
@@ -24,20 +23,6 @@ const get = expressAsyncHandler(async (req, res) => {
 			username,
 			avatar,
 		})
-	} catch (error) {
-		console.log(error)
-		res.status(422)
-		throw new Error(`Something went wrong`)
-	}
-})
-const googleGet = expressAsyncHandler(async (req, res) => {
-	try {
-		passport.authenticate("google", {
-			successRedirect: "http://localhost:3000",
-			failureRedirect: "/login/failed",
-		})
-
-		// res.status(200).json({})
 	} catch (error) {
 		console.log(error)
 		res.status(422)
@@ -89,131 +74,6 @@ const login = expressAsyncHandler(async (req, res) => {
 		if (error.message === "Invalid credentials")
 			throw new Error(error.message)
 		else throw new Error("Something went wrong")
-	}
-})
-const googleLogin = expressAsyncHandler(async (req, res) => {
-	try {
-		const { credential } = req.body
-
-		try {
-			// Verify the credentialResponse using the Google OAuth client
-			const ticket = await client.verifyIdToken({
-				idToken: credential,
-				audience: process.env.googleClientID,
-			})
-
-			const payload = ticket.getPayload()
-
-			const fullname = payload.name
-			const email = payload.email
-			const avatar = payload.picture || ""
-
-			//payload contains user information
-
-			// const userId = payload["sub"]
-
-			let user = await User.findOne({ email })
-
-			if (!user) {
-				user = await User.create({
-					fullname,
-					email,
-					password: credential,
-				})
-			}
-
-			const csrfSecret = await csrf.secret()
-			const csrfToken = csrf.create(csrfSecret)
-
-			await Token.create({
-				user: user.id,
-				clientSideCookie: csrfSecret,
-			})
-
-			req.session.user = { ...user._doc, csrfSecret, credential }
-
-			// const { _id, fullname, username, avatar } = user
-
-			res.status(200).json({
-				_id: user._id,
-				fullname,
-				email,
-				csrfToken,
-				avatar,
-			})
-
-			// Perform user authentication and session management here
-			// Example: Create a session and return a response indicating successful login
-			// res.status(200).json({ message: "Google login successful", userId })
-		} catch (error) {
-			console.error("Google login error:", error)
-			res.status(401).json({ message: "Google login failed" })
-		}
-	} catch (error) {
-		console.log(error)
-		res.status(422)
-		if (error.message === "Invalid credentials")
-			throw new Error(error.message)
-		else throw new Error("Something went wrong")
-	}
-})
-const facebookLogin = expressAsyncHandler(async (req, res) => {
-	const { accessToken, userID } = req.body
-
-	try {
-		// Make a GET request to Facebook's token debug endpoint
-		const response = await axios.get(
-			"https://graph.facebook.com/v12.0/me",
-			{
-				params: {
-					access_token: accessToken,
-					fields: "id, name, email", // Specify the fields you need to retrieve (e.g., 'id', 'name', 'email')
-				},
-			}
-		)
-
-		const userData = response.data
-
-		// Check if the token is valid
-		if (userData && userData?.id === userID) {
-			const email = userData.email
-			const fullname = userData.name
-
-			let user = await User.findOne({ email })
-
-			if (!user) {
-				user = await User.create({
-					fullname,
-					email,
-					password: accessToken,
-				})
-			}
-
-			const csrfSecret = await csrf.secret()
-			const csrfToken = csrf.create(csrfSecret)
-
-			await Token.create({
-				user: user.id,
-				clientSideCookie: csrfSecret,
-			})
-
-			req.session.user = { ...user._doc, csrfSecret, accessToken }
-
-			// const { _id, fullname, username, avatar } = user
-
-			res.status(200).json({
-				_id: user._id,
-				fullname,
-				email,
-				csrfToken,
-			})
-		} else {
-			// Token is invalid
-			res.status(401).json({ message: "Facebook login failed" })
-		}
-	} catch (error) {
-		console.error("Error verifying Facebook access token:", error)
-		res.status(500).json({ error: "Internal server error" })
 	}
 })
 const logout = expressAsyncHandler(async (req, res) => {
@@ -345,13 +205,149 @@ const savePassword = expressAsyncHandler(async (req, res) => {
 		throw new Error(`Something went wrong`)
 	}
 })
+const googleLogin = expressAsyncHandler(async (req, res) => {
+	if (
+		process?.env?.OAUTH_DISABLED !== true &&
+		process?.env?.GOOGLE_OAUTH_DISABLED !== true
+	) {
+		try {
+			const { credential } = req.body
 
+			try {
+				// Verify the credentialResponse using the Google OAuth client
+				const ticket = await client.verifyIdToken({
+					idToken: credential,
+					audience: process.env.googleClientID,
+				})
+
+				const payload = ticket.getPayload()
+
+				const fullname = payload.name
+				const email = payload.email
+				const avatar = payload.picture || ""
+
+				//payload contains user information
+
+				// const userId = payload["sub"]
+
+				let user = await User.findOne({ email })
+
+				if (!user) {
+					user = await User.create({
+						fullname,
+						email,
+						password: credential,
+					})
+				}
+
+				const csrfSecret = await csrf.secret()
+				const csrfToken = csrf.create(csrfSecret)
+
+				await Token.create({
+					user: user.id,
+					clientSideCookie: csrfSecret,
+				})
+
+				req.session.user = { ...user._doc, csrfSecret, credential }
+
+				// const { _id, fullname, username, avatar } = user
+
+				res.status(200).json({
+					_id: user._id,
+					fullname,
+					email,
+					csrfToken,
+					avatar,
+				})
+
+				// Perform user authentication and session management here
+				// Example: Create a session and return a response indicating successful login
+				// res.status(200).json({ message: "Google login successful", userId })
+			} catch (error) {
+				console.error("Google login error:", error)
+				res.status(401).json({ message: "Google login failed" })
+			}
+		} catch (error) {
+			console.log(error)
+			res.status(422)
+			if (error.message === "Invalid credentials")
+				throw new Error(error.message)
+			else throw new Error("Something went wrong")
+		}
+	} else {
+		throw new Error("Service is disabled")
+	}
+})
+const facebookLogin = expressAsyncHandler(async (req, res) => {
+	if (
+		process?.env?.OAUTH_DISABLED !== true &&
+		process?.env?.FACEBOOK_OAUTH_DISABLED !== true
+	) {
+		const { accessToken, userID } = req.body
+		try {
+			// Make a GET request to Facebook's token debug endpoint
+			const response = await axios.get(
+				"https://graph.facebook.com/v12.0/me",
+				{
+					params: {
+						access_token: accessToken,
+						fields: "id, name, email", // Specify the fields you need to retrieve (e.g., 'id', 'name', 'email')
+					},
+				}
+			)
+
+			const userData = response.data
+
+			// Check if the token is valid
+			if (userData && userData?.id === userID) {
+				const email = userData.email
+				const fullname = userData.name
+
+				let user = await User.findOne({ email })
+
+				if (!user) {
+					user = await User.create({
+						fullname,
+						email,
+						password: accessToken,
+					})
+				}
+
+				const csrfSecret = await csrf.secret()
+				const csrfToken = csrf.create(csrfSecret)
+
+				await Token.create({
+					user: user.id,
+					clientSideCookie: csrfSecret,
+				})
+
+				req.session.user = { ...user._doc, csrfSecret, accessToken }
+
+				// const { _id, fullname, username, avatar } = user
+
+				res.status(200).json({
+					_id: user._id,
+					fullname,
+					email,
+					csrfToken,
+				})
+			} else {
+				// Token is invalid
+				res.status(401).json({ message: "Facebook login failed" })
+			}
+		} catch (error) {
+			console.error("Error verifying Facebook access token:", error)
+			res.status(500).json({ error: "Internal server error" })
+		}
+	} else {
+		throw new Error("Service is disabled")
+	}
+})
 module.exports = {
 	register,
 	login,
 	facebookLogin,
 	googleLogin,
-	googleGet,
 	logout,
 	get,
 	saveProfile,
