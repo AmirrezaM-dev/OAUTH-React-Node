@@ -65,11 +65,6 @@ const AuthForm = () => {
 								autoLoad={false}
 								fields="name,email,picture"
 								callback={handleFacebookLogin}
-								render={(renderProps) => (
-									<button onClick={renderProps.onClick}>
-										Login with Facebooks
-									</button>
-								)}
 							/>
 							<Button
 								variant="outline-info"

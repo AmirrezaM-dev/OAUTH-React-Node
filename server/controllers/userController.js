@@ -46,41 +46,22 @@ const login = expressAsyncHandler(async (req, res) => {
 			res.status(400)
 			throw new Error("Please fill all fields")
 		}
-		if (req.cookies.lt) {
-			await Token.findOneAndDelete({ lt: req.cookies.lt, active: true })
-			res.clearCookie("lt")
-		}
-		const email = req.body.email.toLowerCase(),
-			password = req.body.password
-		const user = await User.findOne({ email })
-		if (user && (await bcrypt.compare(password, user.password))) {
-			const token = generateToken(user._id)
-			const csrfSecret = await csrf.secret()
-			const csrfToken = csrf.create(csrfSecret)
+		const { email, password } = req.body
+		try {
+			const user = await User.findOne({ email })
+			if (!user) {
+				return res.status(401).json({ error: "Invalid credentials" })
+			}
 
-			await Token.create({ user: user.id, lt: token, cs: csrfSecret })
+			const isMatch = await bcrypt.compare(password, user.password)
+			if (!isMatch) {
+				return res.status(401).json({ error: "Invalid credentials" })
+			}
 
-			res.cookie("lt", token, {
-				path: "/",
-				sameSite: "none",
-				maxAge: 99999999,
-				httpOnly: true,
-				secure: true,
-			})
-
-			const { _id, fullname, username, avatar } = user
-
-			res.status(200).json({
-				_id,
-				fullname,
-				email,
-				username,
-				csrfToken,
-				avatar,
-			})
-		} else {
-			res.status(400)
-			throw new Error("Invalid credentials")
+			req.session.userId = user._id // Store user ID in session
+			res.status(200).json({ message: "Login successful" })
+		} catch (error) {
+			res.status(500).json({ error: "Login failed" })
 		}
 	} catch (error) {
 		res.status(422)

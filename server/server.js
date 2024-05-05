@@ -12,16 +12,17 @@ server.once("listening", function () {
 })
 server.listen(port)
 server.once("close", function () {
-	const cors = require("cors")
-	const express = require("express")
-	const passport = require("passport")
-	const cookieParser = require("cookie-parser")
-	const cookieSession = require("cookie-session")
 	require("dotenv").config({ path: ".env" })
 	require("./services/passport")
-	express.Router()
-	const { errorHandler } = require("./middlewares/errorMiddleware")
+	const cors = require("cors")
+	const express = require("express")
+	const cookieParser = require("cookie-parser")
+	const cookieSession = require("cookie-session")
 	const connectDB = require("./configs/db")
+	const session = require("express-session")
+	const passport = require("passport")
+	const { errorHandler } = require("./middlewares/errorMiddleware")
+	express.Router()
 	const app = express()
 	const origins = [process.env.FRONT_END_URL]
 	const CORS = {
@@ -46,6 +47,13 @@ server.once("close", function () {
 	app.use(passport.session())
 
 	app.use(express.json())
+	app.use(
+		session({
+			secret: process.env.SESSION_SECURE_KEY,
+			resave: false,
+			saveUninitialized: true,
+		})
+	)
 	app.use(express.urlencoded({ extended: false }))
 
 	app.use("/api/users", require("./routes/userRoutes"))
